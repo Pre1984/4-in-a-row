@@ -56,26 +56,30 @@ class Game {
         }
     } */
     playToken(){
-        const activeToken = this.activePlayer.activeToken;
-        const column = this.board.spaces[activeToken.columnLocation];
-        
-        if (column[0].token !== null) {
-            return;
-        } else {
-            for (let i = 5; i >= 0; i-- ) {
-                if (column[i].token === null) {
-                    this.ready = false;
-                    activeToken.drop(column[i]);
-                    break;
-                }
+        let spaces = this.board.spaces;
+        let activeToken = this.activePlayer.activeToken;
+        let targetColumn = spaces[activeToken.columnLocation];
+        let targetSpace = null;
+    
+        for (let space of targetColumn) {
+            if (space.token === null) {
+                targetSpace = space;
             }
         }
-        drop();
-        
-    };
+    
+        if (targetSpace !== null) {
+            const game = this;
+            game.ready = false;
+    
+            activeToken.drop(targetSpace, function(){
+                game.updateGameState(activeToken, targetSpace);           
+            });  
+        }              
+    }
      
-    checkForWin(){
+    checkForWin(target){
 
+        const owner = target.token.owner;
         let win = false;
         //Check Vertical
         for (let x = 0; x < this.board.columns; x++) {
@@ -89,7 +93,7 @@ class Game {
             }
         }
         // Check Horizontal
-        for(let x = 0; x < this.board.column - 3; x++){
+        for(let x = 0; x < this.board.columns - 3; x++){
             for (let y = 0; y < this.board.rows; y++){
                 if ( this.board.spaces[x][y].owner === owner &&
                     this.board.spaces[x + 1][y].owner === owner &&
@@ -127,16 +131,12 @@ class Game {
 
     switchPlayers(){
         for(let player of this.players) {
-            if (player.active){
-                return false;
-            } else {
-                return true;
-            }
+            player.active = player.active === true ? false : true;
         }
     }
 
     gameOver(message) {
-        document.querySelector('#game-over').switchPlayers.diplay = 'block';
+        document.querySelector('#game-over').style.diplay = 'block';
         document.querySelector('#game-over').textContent = message;
     }
     /** 
@@ -145,7 +145,25 @@ class Game {
  * @param   {Object}  target -  Targeted space for dropped token.
  */
     updateGameState(token, target){
+        target.mark(token);
 
-    }
+        if (!this.checkForWin(target)) {
+
+            this.switchPlayers();
+
+            if(this.activePlayer.checkTokens()){
+                this.activePlayer.activeToken.drawHTMLToken();
+                this.ready = true;
+            } else {
+                this.gameOver('No more tokens');
+            }
+        }
+        else{
+            this.gameOver(`${target.owner.name} wins!`)
+
+            
+            }
+        
+        }
     
 }
